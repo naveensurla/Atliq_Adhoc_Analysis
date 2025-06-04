@@ -1,0 +1,76 @@
+import pandas as pd
+import mysql.connector
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Establishing a connection to the database
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root",
+    database="gdb023"
+)
+
+# Defining the SQL query
+query = """
+SELECT 
+    fpid.customer_code,
+    dc.customer,
+    AVG(fpid.pre_invoice_discount_pct) AS average_discount_percentage
+FROM 
+    gdb023.fact_pre_invoice_deductions fpid
+JOIN 
+    gdb023.dim_customer dc 
+    ON fpid.customer_code = dc.customer_code
+WHERE 
+    fpid.fiscal_year = 2021
+    AND dc.market = 'India'
+GROUP BY 
+    fpid.customer_code, dc.customer
+ORDER BY 
+    average_discount_percentage DESC
+LIMIT 5;
+"""
+
+# Executing the query and loading the results into a DataFrame
+df = pd.read_sql(query, conn)
+
+# Closing the database connection
+conn.close()
+
+# Plotting
+plt.figure(figsize=(12, 6))
+
+# Horizontal bar plot of average discount percentage by customer
+sns.barplot(
+    x='average_discount_percentage',
+    y='customer',
+    data=df,
+    color='skyblue'
+)
+
+# Annotating each bar with its value (to 4 decimal places)
+for index, row in df.iterrows():
+    plt.text(
+        row['average_discount_percentage'] + 0.01,  # offset for clarity
+        index,
+        f"{row['average_discount_percentage']:.4f}",
+        va='center'
+    )
+
+# Customizing plot labels and title
+plt.xlabel('Average Discount Percentage')
+plt.ylabel('Customer')
+plt.title('Top 5 Customers with Highest Average Pre-Invoice Discount % (2021, India)')
+
+# Add gridlines for improved readability
+plt.grid(axis='x', linestyle='--', alpha=0.7)
+
+# Set x-axis limit to improve visual appearance
+plt.xlim(0, 0.5)
+
+# Ensure layout fits well
+plt.tight_layout()
+
+# Display the plot
+plt.show()
