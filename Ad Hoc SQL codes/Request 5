@@ -1,0 +1,23 @@
+-- 5. Get the products that have the highest and lowest manufacturing costs.
+-- The final output should contain these fields: product_code, product, manufacturing_cost
+WITH result AS (
+    SELECT 
+        fmc.product_code,
+        dp.product AS product_name,
+        fmc.manufacturing_cost,
+        ROW_NUMBER() OVER (ORDER BY fmc.manufacturing_cost DESC) AS ranked_desc,
+        ROW_NUMBER() OVER (ORDER BY fmc.manufacturing_cost ASC) AS ranked_asc
+    FROM 
+        gdb023.fact_manufacturing_cost fmc
+    JOIN 
+        gdb023.dim_product dp ON dp.product_code = fmc.product_code)
+SELECT 
+    product_code,
+    product_name,
+    manufacturing_cost
+FROM 
+    result
+WHERE 
+    ranked_desc = 1 OR ranked_asc = 1
+ORDER BY 
+    ranked_desc ASC;
