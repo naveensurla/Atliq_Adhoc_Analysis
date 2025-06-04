@@ -1,0 +1,90 @@
+import pandas as pd
+import mysql.connector
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+import seaborn as sns
+
+# Step 1. Connecting to the Database and Retrieving  the Data
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root",
+    database="gdb023"
+)
+
+# Defining SQL Query
+query = """
+SELECT 
+    fsm.fiscal_year AS Fiscal_Year,
+    MONTHNAME(fsm.date) AS Month,
+    ROUND(SUM(fgp.gross_price * fsm.sold_quantity), 0) AS Gross_sales_Amount
+FROM 
+    gdb023.fact_sales_monthly fsm
+JOIN 
+    gdb023.fact_gross_price fgp 
+    ON fsm.product_code = fgp.product_code AND fsm.fiscal_year = fgp.fiscal_year
+JOIN 
+    gdb023.dim_customer dc 
+    ON dc.customer_code = fsm.customer_code
+WHERE 
+    dc.customer = "Atliq Exclusive"
+GROUP BY 
+    fsm.fiscal_year, MONTH(fsm.date), MONTHNAME(fsm.date)
+ORDER BY 
+    fsm.fiscal_year, MONTH(fsm.date);
+"""
+
+# Executing the Query and Loading the Results into a DataFrame
+df = pd.read_sql(query, conn)
+conn.close()
+
+# Step 2. Visualizing the Data
+# Define month order starting from September
+month_order = [
+    'September', 'October', 'November', 'December',
+    'January', 'February', 'March', 'April',
+    'May', 'June', 'July', 'August'
+]
+
+# Ensuring the Month column is categorical with the custom order
+df['Month'] = pd.Categorical(df['Month'], categories=month_order, ordered=True)
+
+# Sort the DataFrame accordingly
+df = df.sort_values(['Fiscal_Year', 'Month'])
+
+# Plot the Line Chart
+plt.figure(figsize=(12, 6))
+sns.lineplot(
+    data=df, 
+    x='Month', 
+    y='Gross_sales_Amount', 
+    hue='Fiscal_Year', 
+    marker='o'
+)
+
+# Adding Data Labels on Each Point (in millions)
+for i in range(df.shape[0]):
+    value_million = df['Gross_sales_Amount'].iloc[i] / 1_000_000
+    plt.text(
+        x=df['Month'].iloc[i],
+        y=df['Gross_sales_Amount'].iloc[i],
+        s=f"{value_million:.1f} M",
+        ha='center',
+        va='bottom',
+        fontsize=9
+    )
+
+# Formatting Y-axis labels in millions
+plt.gca().yaxis.set_major_formatter(mtick.FuncFormatter(lambda x, _: f'{x/1_000_000:.1f} M'))
+
+# Setting Titles and Labels
+plt.title('Gross Sales for Atliq Exclusive by Month (Starting from September)')
+plt.xlabel('Month')
+plt.ylabel('Gross Sales Amount (in Millions)')
+plt.xticks(rotation=45)
+
+# Improving Layout
+plt.tight_layout()
+
+# Showing the Plot
+plt.show()
