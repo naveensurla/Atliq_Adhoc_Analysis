@@ -1,0 +1,75 @@
+import pandas as pd
+import mysql.connector
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Connecting to the MySQL database
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root",
+    database="gdb023"
+)
+
+# SQL query
+query = """
+SELECT 
+    dp.segment AS segment,
+    COUNT(DISTINCT CASE WHEN fsm.fiscal_year = 2020 THEN dp.product_code END) AS product_count_2020,
+    COUNT(DISTINCT CASE WHEN fsm.fiscal_year = 2021 THEN dp.product_code END) AS product_count_2021,
+    (COUNT(DISTINCT CASE WHEN fsm.fiscal_year = 2021 THEN dp.product_code END) - 
+     COUNT(DISTINCT CASE WHEN fsm.fiscal_year = 2020 THEN dp.product_code END)) AS difference
+FROM 
+    gdb023.fact_sales_monthly fsm
+JOIN 
+    gdb023.dim_product dp ON fsm.product_code = dp.product_code
+GROUP BY 
+    dp.segment
+ORDER BY 
+    difference DESC;
+"""
+
+# Fetching data into a pandas DataFrame
+df = pd.read_sql(query, conn)
+
+# Closing the database connection
+conn.close()
+
+# Reshapeing the DataFrame from wide to long format for seaborn
+df_melted = pd.melt(
+    df,
+    id_vars=['segment'],
+    value_vars=['product_count_2020', 'product_count_2021'],
+    var_name='Fiscal Year',
+    value_name='Product Count'
+)
+# Renaming fiscal years for clearer labels
+df_melted['Fiscal Year'] = df_melted['Fiscal Year'].replace({
+    'product_count_2020': '2020',
+    'product_count_2021': '2021'
+})
+
+# Plotting with seaborn
+plt.figure(figsize=(12, 6))
+ax = sns.barplot(
+    x='segment',
+    y='Product Count',
+    hue='Fiscal Year',
+    data=df_melted,
+    palette='viridis'
+)
+
+# Adding value labels on each bar
+for container in ax.containers:
+    ax.bar_label(container, fontsize=9)
+
+# Customize the plot
+plt.xlabel('Segment')
+plt.ylabel('Product Count')
+plt.title('Product Count by Segment and Fiscal Year')
+plt.xticks(rotation=45)
+plt.legend(title='Fiscal Year')
+plt.tight_layout()
+
+# Show the plot
+plt.show()
