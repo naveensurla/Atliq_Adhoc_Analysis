@@ -1,0 +1,55 @@
+import pandas as pd
+import mysql.connector
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Establishing the database connection
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root",
+    database="gdb023"
+)
+
+# Executing the SQL query to fetch product counts by segment
+query = """
+SELECT 
+    segment,
+    COUNT(DISTINCT product_code) AS product_count
+FROM 
+    gdb023.dim_product
+GROUP BY 
+    segment
+ORDER BY 
+    product_count DESC;
+"""
+df = pd.read_sql(query, conn)
+
+# Closing the database connection
+conn.close()
+
+# Creating the bar plot for product counts by segment
+plt.figure(figsize=(10, 6))
+ax = sns.barplot(x='segment', y='product_count', data=df, palette='viridis')
+
+# Adding value labels on top of the bars
+for index, row in df.iterrows():
+    ax.text(
+        index,                               # x position
+        row['product_count'] + 1,            # y position slightly above the bar
+        row['product_count'],                # text to display
+        color='black',                       # text color
+        ha='center',                         # horizontal alignment
+        va='bottom',                         # vertical alignment
+        fontsize=10                          # font size
+    )
+
+# Setting plot labels and title
+plt.xlabel('Segment')
+plt.ylabel('Product Count')
+plt.title('Product Count by Segment')
+plt.xticks(rotation=45)
+plt.tight_layout()
+
+# Displaying the plot
+plt.show()
