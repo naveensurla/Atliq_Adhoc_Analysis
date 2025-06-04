@@ -1,0 +1,83 @@
+import pandas as pd
+import mysql.connector
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Step 1: Connecting to the Database and Retrieve the Data
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root",
+    database="gdb023"
+)
+
+query = """
+SELECT 
+    CASE 
+        WHEN MONTH(date) IN (9, 10, 11) THEN 'Q1'
+        WHEN MONTH(date) IN (12, 1, 2) THEN 'Q2'
+        WHEN MONTH(date) IN (3, 4, 5) THEN 'Q3'
+        WHEN MONTH(date) IN (6, 7, 8) THEN 'Q4'
+    END AS Quarter,
+    SUM(sold_quantity) AS total_sold_quantity
+FROM 
+    gdb023.fact_sales_monthly
+WHERE 
+    fiscal_year = 2020
+GROUP BY 
+    Quarter
+ORDER BY 
+    total_sold_quantity DESC;
+"""
+
+# Executing the query and loading the results into a DataFrame
+df = pd.read_sql(query, conn)
+conn.close()
+
+# Step 2: Preparing and Visualizing the Data
+# Defining the correct quarter order (matches the CASE logic above)
+quarter_order = ['Q1', 'Q2', 'Q3', 'Q4']
+
+# Converting the Quarter column to a categorical type with the specified order
+df['Quarter'] = pd.Categorical(df['Quarter'], categories=quarter_order, ordered=True)
+
+# Sorting the DataFrame by Quarter order
+df = df.sort_values('Quarter')
+
+# Create the bar plot
+plt.figure(figsize=(8, 6))
+sns.barplot(
+    data=df,
+    x='Quarter',
+    y='total_sold_quantity',
+    palette='Blues_d'
+)
+
+# Setting labels and title
+plt.xlabel('Quarter')
+plt.ylabel('Total Sold Quantity')
+plt.title('Total Sold Quantity by Quarter in Fiscal Year 2020')
+
+# Setting y-axis limit slightly above the maximum bar height
+max_height = df['total_sold_quantity'].max()
+plt.ylim(0, max_height * 1.15)
+
+# Annotating each bar with its total sold quantity in millions
+for index, row in df.iterrows():
+    height = row['total_sold_quantity']
+    plt.text(
+        x=index,
+        y=height + max_height * 0.03,  # position label above the bar
+        s=f"{height / 1_000_000:.2f}M",
+        ha='center',
+        va='bottom',
+        color='black',
+        fontsize=11,
+        fontweight='bold'
+    )
+
+# Improve layout
+plt.tight_layout()
+
+# Display the plot
+plt.show()
