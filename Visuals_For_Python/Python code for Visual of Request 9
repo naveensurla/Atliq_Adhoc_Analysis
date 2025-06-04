@@ -1,0 +1,61 @@
+import pandas as pd
+import mysql.connector
+import matplotlib.pyplot as plt
+# Step 1: Connecting to the Database and Retrieving the Data
+# Establising database connection
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="root",
+    database="gdb023"
+)
+# Defining the SQL query
+query = """
+SELECT 
+    dc.channel,
+    ROUND(SUM(fgp.gross_price * fsm.sold_quantity) / 1000000, 2) AS gross_sales_mln,
+    ROUND(
+        SUM(fgp.gross_price * fsm.sold_quantity) * 100 / 
+        SUM(SUM(fgp.gross_price * fsm.sold_quantity)) OVER (), 2
+    ) AS percentage
+FROM 
+    gdb023.fact_sales_monthly fsm
+JOIN 
+    gdb023.dim_customer dc ON fsm.customer_code = dc.customer_code
+JOIN 
+    gdb023.fact_gross_price fgp 
+    ON fsm.product_code = fgp.product_code AND fsm.fiscal_year = fgp.fiscal_year
+WHERE 
+    fsm.fiscal_year = 2021
+GROUP BY 
+    dc.channel;
+"""
+# Executing the query and load the result into a DataFrame
+df = pd.read_sql(query, conn)
+# Closing the database connection
+conn.close()
+# Step 2: Preparing and Visualizing the Data
+# Defining labels and sizes for the pie chart
+labels = df['channel']
+sizes = df['gross_sales_mln']
+# Highlighting the largest slice (channel with highest gross sales)
+explode = [
+    0.1 if i == sizes.idxmax() else 0 
+    for i in range(len(sizes))
+]
+# Creating the pie chart
+plt.figure(figsize=(8, 8))
+plt.pie(
+    sizes, 
+    labels=labels, 
+    autopct='%1.2f%%', 
+    startangle=140, 
+    shadow=True, 
+    explode=explode,
+    textprops={'fontsize': 12}
+)
+# Seting title and make sure pie is circular
+plt.title('Gross Sales Contribution by Channel in Fiscal Year 2021')
+plt.axis('equal')  # Equal aspect ratio ensures a circular pie chart
+# Displaying the plot
+plt.show()
