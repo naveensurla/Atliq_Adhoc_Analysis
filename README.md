@@ -1,4 +1,4 @@
-# 🚲 Atliq_Adhoc_Analysis 
+# Atliq_Adhoc_Analysis 
 ---
 
 ## 📌 Project Overview
