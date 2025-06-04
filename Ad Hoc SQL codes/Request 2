@@ -1,0 +1,33 @@
+-- 2. What is the percentage of unique product increase in 2021 vs. 2020?
+-- The final output contains these fields: unique_products_2020, unique_products_2021, percentage_chg
+WITH details AS (
+    SELECT
+        fiscal_year,
+        COUNT(DISTINCT product_code) AS unique_products_count
+    FROM
+        gdb023.fact_sales_monthly
+    GROUP BY
+        fiscal_year
+),
+details_with_lag AS (
+    SELECT
+        fiscal_year,
+        unique_products_count,
+        LAG(unique_products_count) OVER (ORDER BY fiscal_year) AS unique_products_count_LY
+    FROM
+        details
+)
+SELECT
+    unique_products_count AS unique_products_2021,
+    unique_products_count_LY AS unique_products_2020,
+    CASE
+        WHEN unique_products_count_LY != 0 AND unique_products_count_LY IS NOT NULL
+        THEN
+            (unique_products_count - unique_products_count_LY) * 100 
+            / CAST(unique_products_count_LY AS DECIMAL)
+        ELSE
+            NULL
+    END AS percentage_chg
+FROM
+    details_with_lag
+WHERE fiscal_year = 2021;
