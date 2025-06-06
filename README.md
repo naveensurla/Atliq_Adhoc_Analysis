@@ -12,6 +12,13 @@ This project performs data analysis on sales and product data from the gdb023 da
 I utilized publicly available atliq_hardware_db data from Codebasics Resume Project Challenge 4  
 🔗 [Resume Challange Source & Data](https://codebasics.io/challenge/codebasics-resume-project-challenge/7)
 
+---
+
+## 📊 Atliq Adhocs Report Presentation
+
+You can view the detailed Atliq Adhocs Report Presentation in the PDF file linked below:
+
+[Atliq_Adhocs_Report_Presentation.pdf](https://github.com/naveensurla/Atliq_Adhoc_Analysis/blob/8f145876a71c037e305d45a35c030e50a2f59a90/Atliq%20Adhocs_report_presentation/Atliq%20Adhocs_report_presentation.pdf)
 
 ---
 
